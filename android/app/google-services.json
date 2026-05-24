@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "512812298134",
+    "project_id": "abkitchen-bbb9c",
+    "storage_bucket": "abkitchen-bbb9c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:512812298134:android:e4a0ce2f37e5202c72b7b7",
+        "android_client_info": {
+          "package_name": "com.ab_foods"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDzc3CrJkLX8ErQIu9vtESqbyLwX9Q1DE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:512812298134:android:ff34419a14325c7272b7b7",
+        "android_client_info": {
+          "package_name": "com.abfoods"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDzc3CrJkLX8ErQIu9vtESqbyLwX9Q1DE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+} 
