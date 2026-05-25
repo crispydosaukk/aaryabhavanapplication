@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -27,7 +27,7 @@ import { Image } from 'react-native';
 const ChecklistFormScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { checklistId, title } = route.params || {};
+  const { checklistId, title, reportId } = route.params || {};
   const { user } = useSelector(state => state.user);
 
   const [questions, setQuestions] = useState([]);
@@ -36,7 +36,7 @@ const ChecklistFormScreen = () => {
   const [answers, setAnswers] = useState({});
   const [showPicker, setShowPicker] = useState({ id: null, mode: 'date' });
   const [showSuccess, setShowSuccess] = useState(false);
-  const successAnim = new Animated.Value(0);
+  const successAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const fetchChecklist = async () => {
@@ -62,12 +62,25 @@ const ChecklistFormScreen = () => {
               
               initialAnswers[q.id] = defaultVal;
             });
+
+            if (reportId) {
+              const reportSnap = await firestore().collection('checklist_reports').doc(reportId).get();
+              if (reportSnap.exists) {
+                const reportData = reportSnap.data();
+                if (reportData.answers) {
+                  reportData.answers.forEach(a => {
+                    initialAnswers[a.questionId] = a.answer;
+                  });
+                }
+              }
+            }
+
             setAnswers(initialAnswers);
           }
         }
       } catch (error) {
         console.error('Failed to fetch checklist', error);
-        Alert.alert('Error', 'Failed to load checklist questions.');
+        Alert.alert('Error', 'Failed to load checklist data.');
       } finally {
         setLoading(false);
       }
@@ -75,7 +88,7 @@ const ChecklistFormScreen = () => {
     if (checklistId) {
       fetchChecklist();
     }
-  }, [checklistId]);
+  }, [checklistId, reportId]);
 
   const handleAnswerChange = (questionId, value) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
@@ -181,7 +194,7 @@ const ChecklistFormScreen = () => {
         checklistTitle: title,
         submittedByEmail: user?.email || 'Unknown',
         submittedByName: user?.name || 'Unknown',
-        submittedAt: firestore.FieldValue.serverTimestamp(),
+        updatedAt: firestore.FieldValue.serverTimestamp(),
         answers: questions.map(q => ({
           questionId: q.id,
           question: q.question,
@@ -190,7 +203,15 @@ const ChecklistFormScreen = () => {
         }))
       };
 
-      await firestore().collection('checklist_reports').add(reportData);
+      if (!reportId) {
+        reportData.submittedAt = firestore.FieldValue.serverTimestamp();
+      }
+
+      if (reportId) {
+        await firestore().collection('checklist_reports').doc(reportId).update(reportData);
+      } else {
+        await firestore().collection('checklist_reports').add(reportData);
+      }
       
       // Show success popup
       successAnim.setValue(0);
@@ -229,9 +250,9 @@ const ChecklistFormScreen = () => {
             opacity: successAnim,
             transform: [
               {
-                translateY: successAnim.interpolate({
+                scale: successAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [-50, 0],
+                  outputRange: [0.8, 1],
                 }),
               },
             ],
@@ -590,16 +611,21 @@ const styles = StyleSheet.create({
   successPopupContainer: {
     position: 'absolute',
     top: 0,
+    bottom: 0,
     left: 0,
     right: 0,
     zIndex: 1000,
     padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   successPopup: {
     backgroundColor: 'white',
     borderRadius: 16,
-    padding: 24,
+    padding: 32,
     alignItems: 'center',
+    width: '85%',
     ...appTheme.shadows.large,
   },
   successPopupTitle: {

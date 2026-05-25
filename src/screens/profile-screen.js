@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,9 @@ import {
   Alert,
   ScrollView,
   Animated,
-  Image,
   Platform,
   SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -17,7 +17,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setCartData } from '../features/cart-slice';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-
 import LinearGradient from 'react-native-linear-gradient';
 import appTheme from '../abTheme';
 
@@ -25,188 +24,142 @@ const ProfileScreen = () => {
   const { user } = useSelector(state => state.user);
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const [showConfetti, setShowConfetti] = useState(false);
   
   // Animation values
-  const scaleValue = new Animated.Value(1);
-  const fadeAnim = new Animated.Value(1);
+  const scaleValue = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const handleLogout = async () => {
     Animated.sequence([
-      Animated.timing(scaleValue, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleValue, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
+      Animated.timing(scaleValue, { toValue: 0.95, duration: 100, useNativeDriver: true }),
+      Animated.timing(scaleValue, { toValue: 1, duration: 100, useNativeDriver: true }),
     ]).start();
 
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to log out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          onPress: async () => {
-            try {
-              Animated.timing(fadeAnim, {
-                toValue: 0,
-                duration: 300,
-                useNativeDriver: true,
-              }).start();
-
-              dispatch({ type: 'CLEAR_USER' });
-              dispatch(setCartData({}));
-              await AsyncStorage.removeItem('user');
-
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-              });
-            } catch (error) {
-              console.error('Error during logout:', error);
-              Alert.alert('Error', 'Failed to log out. Please try again.');
-            }
-          },
-          style: 'destructive',
+    Alert.alert('Logout', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        onPress: async () => {
+          try {
+            Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start();
+            dispatch({ type: 'CLEAR_USER' });
+            dispatch(setCartData({}));
+            await AsyncStorage.removeItem('user');
+            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+          } catch (error) {
+            console.error('Error during logout:', error);
+            Alert.alert('Error', 'Failed to log out.');
+          }
         },
-      ]
-    );
+        style: 'destructive',
+      },
+    ]);
   };
 
-  const ProfileCard = ({ icon, label, value }) => (
-    <View style={styles.profileCard}>
-      <View style={styles.cardIconContainer}>
-        <Icon 
-          name={icon} 
-          size={20} 
-          color={appTheme.colors.primary} 
-        />
+  const InfoRow = ({ icon, label, value }) => (
+    <View style={styles.infoRow}>
+      <View style={styles.infoIconWrapper}>
+        <Icon name={icon} size={20} color={appTheme.colors.primary} />
       </View>
-      <View style={styles.cardContent}>
-        <Text style={styles.cardLabel}>{label}</Text>
-        <Text style={styles.cardValue} numberOfLines={2}>{value || 'Not provided'}</Text>
+      <View style={styles.infoTextWrapper}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue} numberOfLines={1}>{value || 'Not provided'}</Text>
       </View>
     </View>
+  );
+
+  const ActionRow = ({ icon, title, subtitle, onPress, gradientColors, isLast }) => (
+    <TouchableOpacity style={[styles.actionCard, isLast && { borderBottomWidth: 0 }]} onPress={onPress} activeOpacity={0.7}>
+      <LinearGradient colors={gradientColors} style={styles.actionIconWrapper} start={{x:0, y:0}} end={{x:1, y:1}}>
+        <MaterialIcons name={icon} size={24} color="white" />
+      </LinearGradient>
+      <View style={styles.actionTextWrapper}>
+        <Text style={styles.actionTitle}>{title}</Text>
+        {subtitle && <Text style={styles.actionSubtitle}>{subtitle}</Text>}
+      </View>
+      <MaterialIcons name="chevron-right" size={24} color={appTheme.colors.dark + '40'} />
+    </TouchableOpacity>
   );
 
   const HeaderSection = () => (
     <LinearGradient
       colors={[appTheme.colors.primary, appTheme.colors.secondary]}
       start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      
+      end={{ x: 1, y: 1 }}
+      style={styles.headerGradient}
     >
-      <View style={styles.headerGradient}>
-        <TouchableOpacity onPress={()=>navigation.goBack()} style={{paddingLeft:10}}>
-        {/* <Text style={{fontSize:20,paddingLeft:10}}>back</Text> */}
-        <MaterialIcons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-        <View style={styles.avatarWrapper}>
-          <Text style={styles.avatarText}>
-            {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
-          </Text>
+      <SafeAreaView>
+        <View style={styles.headerTop}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <MaterialIcons name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Profile</Text>
+          <View style={{ width: 40 }} />
         </View>
-        {/* <Text style={styles.welcomeText}>Welcome back</Text> */}
-        <Text style={styles.nameText}>{user?.name || 'User'}</Text>
-      </View>
-      </View>
+        
+        <View style={styles.headerProfile}>
+          <View style={styles.avatarWrapper}>
+            <Text style={styles.avatarText}>
+              {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+            </Text>
+          </View>
+          <Text style={styles.nameText}>{user?.name || 'User'}</Text>
+          <Text style={styles.roleText}>{user?.restaurantName || 'Restaurant User'}</Text>
+        </View>
+      </SafeAreaView>
     </LinearGradient>
   );
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <SafeAreaView>
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} bounces={false}>
         <HeaderSection />
 
-        <View style={styles.cardContainer}>
-          <ProfileCard
-            icon="store"
-            label="Restaurant"
-            value={user?.restaurantName}
-          />
-          <ProfileCard
-            icon="email"
-            label="Email"
-            value={user?.email}
-          />
-          <ProfileCard
-            icon="phone"
-            label="Phone"
-            value={user?.phone}
-          />
-          <ProfileCard
-            icon="map-marker"
-            label="Address"
-            value={user?.address}
-          />
+        <View style={styles.mainContent}>
+          <Text style={styles.sectionTitle}>Personal Information</Text>
+          <View style={styles.infoContainer}>
+            <InfoRow icon="email" label="Email Address" value={user?.email} />
+            <View style={styles.divider} />
+            <InfoRow icon="phone" label="Phone Number" value={user?.phone} />
+            <View style={styles.divider} />
+            <InfoRow icon="map-marker" label="Location" value={user?.address} />
+          </View>
+
+          <Text style={styles.sectionTitle}>Operations</Text>
+          <View style={styles.actionsContainer}>
+            <ActionRow 
+              icon="restaurant" 
+              title="Kitchen Checklists" 
+              subtitle="Daily kitchen workflows"
+              gradientColors={['#FF9A9E', '#FECFEF']}
+              onPress={() => navigation.navigate('ChecklistSelectionScreen', { type: 'kitchen' })} 
+            />
+            <ActionRow 
+              icon="storefront" 
+              title="Restaurant Checklists" 
+              subtitle="Front-of-house operations"
+              gradientColors={['#a18cd1', '#fbc2eb']}
+              onPress={() => navigation.navigate('ChecklistSelectionScreen', { type: 'restaurant' })} 
+            />
+            <ActionRow 
+              icon="history" 
+              title="Checklist History" 
+              subtitle="View and edit past reports"
+              gradientColors={['#84fab0', '#8fd3f4']}
+              onPress={() => navigation.navigate('ChecklistHistoryScreen')} 
+              isLast
+            />
+          </View>
+
+          <Animated.View style={{ transform: [{ scale: scaleValue }], marginTop: 24, marginBottom: 20 }}>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
+              <Icon name="logout" size={22} color={appTheme.colors.primary} />
+              <Text style={styles.logoutButtonText}>Log Out</Text>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
-
-        <View style={[styles.actionsContainer, { marginTop: -10 }]}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('ChecklistSelectionScreen', { type: 'kitchen' })}
-          >
-            <LinearGradient
-              colors={['#e0f7fa', '#b2ebf2']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <View style={styles.actionButtonGradient}>
-              <MaterialIcons name="restaurant" size={24} color={appTheme.colors.dark} />
-              <Text style={[styles.actionButtonText, { fontSize: 14 }]}>Kitchen Checklists</Text>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('ChecklistSelectionScreen', { type: 'restaurant' })}
-          >
-            <LinearGradient
-              colors={['#fff9c4', '#fff59d']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <View style={styles.actionButtonGradient}>
-              <MaterialIcons name="storefront" size={24} color={appTheme.colors.dark} />
-              <Text style={[styles.actionButtonText, { fontSize: 14 }]}>Restaurant Checklists</Text>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
-        <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
-          <TouchableOpacity 
-            style={styles.logoutButton}
-            onPress={handleLogout}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[appTheme.colors.accent, appTheme.colors.secondary]}
-              
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <View style={styles.logoutButtonGradient}>
-              <Icon name="logout" size={24} color={appTheme.colors.white} />
-              <Text style={styles.logoutButtonText}>Logout</Text>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
       </ScrollView>
-      </SafeAreaView>
     </Animated.View>
   );
 };
@@ -214,26 +167,44 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: appTheme.colors.pastelCream,
+    backgroundColor: '#F8F9FA',
   },
   scrollContent: {
-    paddingBottom: 30,
+    paddingBottom: 40,
   },
   headerGradient: {
-    paddingTop: Platform.OS === 'android' ? 10 : 20,
-    paddingBottom: 20,
-    marginBottom: 20,
+    paddingBottom: 32,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
     ...appTheme.shadows.medium,
   },
-  headerContent: {
+  headerTop: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 12 : 12,
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: 'white',
+    letterSpacing: 0.5,
+  },
+  headerProfile: {
+    alignItems: 'center',
+    marginTop: 20,
   },
   avatarWrapper: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: appTheme.colors.white,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -244,93 +215,121 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
   },
-  welcomeText: {
-    fontSize: 16,
-    color: appTheme.colors.white,
-    marginBottom: 4,
-    opacity: 0.9,
-  },
   nameText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: appTheme.colors.white,
+    color: 'white',
+    marginBottom: 4,
   },
-  cardContainer: {
+  roleText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontWeight: '500',
+  },
+  mainContent: {
     paddingHorizontal: 20,
-    marginBottom: 24,
+    paddingTop: 28,
   },
-  profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: appTheme.colors.white,
-    padding: 16,
-    borderRadius: appTheme.borderRadius.lg,
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: appTheme.colors.dark + '80',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
     marginBottom: 12,
+    marginLeft: 8,
+  },
+  infoContainer: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 32,
     ...appTheme.shadows.small,
   },
-  cardIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: appTheme.colors.pastelGreen,
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  infoIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: appTheme.colors.pastelCream,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
-  cardContent: {
+  infoTextWrapper: {
     flex: 1,
   },
-  cardLabel: {
-    fontSize: 14,
-    color: appTheme.colors.dark + '80',
+  infoLabel: {
+    fontSize: 12,
+    color: appTheme.colors.dark + '60',
     marginBottom: 4,
-  },
-  cardValue: {
-    fontSize: 16,
-    color: appTheme.colors.dark,
     fontWeight: '500',
+  },
+  infoValue: {
+    fontSize: 15,
+    color: appTheme.colors.dark,
+    fontWeight: '600',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginVertical: 4,
+    marginLeft: 60,
   },
   actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  actionButton: {
-    flex: 1,
-    marginHorizontal: 8,
-    borderRadius: appTheme.borderRadius.md,
-    overflow: 'hidden',
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 16,
     ...appTheme.shadows.small,
   },
-  actionButtonGradient: {
-    padding: 16,
+  actionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F4F4F4',
   },
-  actionButtonText: {
-    marginLeft: 8,
+  actionIconWrapper: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  actionTextWrapper: {
+    flex: 1,
+  },
+  actionTitle: {
     fontSize: 16,
+    fontWeight: '700',
     color: appTheme.colors.dark,
-    fontWeight: '500',
+    marginBottom: 4,
+  },
+  actionSubtitle: {
+    fontSize: 13,
+    color: appTheme.colors.dark + '70',
+    fontWeight: '400',
   },
   logoutButton: {
-    marginHorizontal: 20,
-    borderRadius: appTheme.borderRadius.lg,
-    overflow: 'hidden',
-    ...appTheme.shadows.medium,
-  },
-  logoutButtonGradient: {
-    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'white',
+    paddingVertical: 18,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: appTheme.colors.primary + '20',
+    ...appTheme.shadows.small,
   },
   logoutButtonText: {
-    color: appTheme.colors.white,
-    fontWeight: 'bold',
-    fontSize: 18,
+    color: appTheme.colors.primary,
+    fontWeight: '700',
+    fontSize: 16,
     marginLeft: 8,
   },
 });

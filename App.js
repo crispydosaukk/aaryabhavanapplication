@@ -15,6 +15,7 @@ import ProfileScreen from './src/screens/profile-screen';
 import OrderHistoryScreen from './src/screens/order-history-screen';
 import ChecklistSelectionScreen from './src/screens/ChecklistSelectionScreen';
 import ChecklistFormScreen from './src/screens/ChecklistFormScreen';
+import ChecklistHistoryScreen from './src/screens/ChecklistHistoryScreen';
 import Toast from 'react-native-toast-message';
 
 const Stack = createStackNavigator();
@@ -71,6 +72,11 @@ export default function App() {
           <Stack.Screen
             name="ChecklistFormScreen"
             component={ChecklistFormScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ChecklistHistoryScreen"
+            component={ChecklistHistoryScreen}
             options={{ headerShown: false }}
           />
         </Stack.Navigator>
